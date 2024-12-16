@@ -7,6 +7,11 @@ app = FastAPI()
 with open("questions.json", "r") as file:
     questions = json.load(file)
 
+# Root route
+@app.get("/")
+def root():
+    return {"message": "Welcome to the Rhyme Quiz API! Use /get_all_questions to get questions."}
+
 # Route to get all questions
 @app.get("/get_all_questions")
 def get_all_questions():
@@ -28,3 +33,11 @@ def check_answer(question: str, user_answer: str):
             else:
                 return {"result": "incorrect"}
     return {"result": "error: question not found"}
+
+
+
+
+
+
+
+
