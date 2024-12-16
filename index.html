@@ -4,50 +4,123 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Rhyme Quiz</title>
+    <style>
+        /* General styling */
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin-top: 50px;
+            background-color: #f9f9f9;
+            color: #333;
+        }
+        h1 {
+            color: #4CAF50;
+        }
+        #question-container, #response, #loading {
+            margin: 20px auto;
+            max-width: 600px;
+        }
+        button {
+            margin: 10px;
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #loading {
+            font-style: italic;
+            color: gray;
+        }
+        #response {
+            font-weight: bold;
+            color: #d9534f;
+        }
+    </style>
 </head>
 <body>
     <h1>Rhyme Quiz</h1>
-    <div id="question-container">
-        <p id="question">Loading questions...</p>
+    <!-- Loading placeholder -->
+    <div id="loading">Loading questions...</div>
+
+    <!-- Quiz container (hidden initially) -->
+    <div id="question-container" style="display: none;">
+        <p id="question">Loading...</p>
         <button onclick="submitAnswer('yes')">Yes</button>
         <button onclick="submitAnswer('no')">No</button>
     </div>
+
+    <!-- Response container -->
     <p id="response"></p>
 
     <script>
-        let questions = [];  // Array to hold all questions
-        let currentQuestionIndex = 0;  // Index to track the current question
+        const backendURL = "https://rhyme-quiz-backend.onrender.com"; // Replace with your backend Render URL
+        let questions = [];             // Array to hold questions
+        let currentQuestionIndex = 0;   // Tracks the current question
 
-        // Fetch all questions from the backend
+        /**
+         * Fetch all questions from the backend
+         */
         async function fetchAllQuestions() {
+            const loadingElement = document.getElementById("loading");
+            const questionContainer = document.getElementById("question-container");
+
+            loadingElement.style.display = "block";
+            questionContainer.style.display = "none";
+
             try {
-                const response = await fetch("http://127.0.0.1:8000/get_all_questions");
+                const response = await fetch(`${backendURL}/get_all_questions`);
+                if (!response.ok) throw new Error("Failed to fetch questions");
+
                 const data = await response.json();
                 questions = data.questions;
-                displayQuestion();
+
+                if (questions.length > 0) {
+                    displayQuestion();
+                } else {
+                    loadingElement.innerText = "No questions found. Please check back later.";
+                }
+
+                loadingElement.style.display = "none";
+                questionContainer.style.display = "block";
             } catch (error) {
                 console.error("Error fetching questions:", error);
-                document.getElementById("question").innerText = "Failed to load questions.";
+                loadingElement.innerText = "Error loading questions. Please refresh the page.";
             }
         }
 
-        // Display the current question
+        /**
+         * Display the current question or end the quiz
+         */
         function displayQuestion() {
+            const questionElement = document.getElementById("question");
+            const responseElement = document.getElementById("response");
+
             if (currentQuestionIndex < questions.length) {
-                document.getElementById("question").innerText = questions[currentQuestionIndex].question;
-                document.getElementById("response").innerText = "";
+                questionElement.innerText = questions[currentQuestionIndex].question;
+                responseElement.innerText = ""; // Clear the previous response
             } else {
-                document.getElementById("question").innerText = "Quiz Complete! Well done!";
-                document.getElementById("response").innerText = "";
+                questionElement.innerText = "Quiz Complete! 🎉 Well done!";
+                responseElement.innerText = "";
+                hideButtons();
             }
         }
 
-        // Submit the user's answer
+        /**
+         * Submit the user's answer and get feedback from the backend
+         */
         async function submitAnswer(answer) {
+            const responseElement = document.getElementById("response");
+
             if (currentQuestionIndex >= questions.length) return;
 
             try {
-                const response = await fetch("http://127.0.0.1:8000/check_answer", {
+                const response = await fetch(`${backendURL}/check_answer`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
@@ -55,16 +128,26 @@
                         user_answer: answer
                     })
                 });
-                const result = await response.json();
-                document.getElementById("response").innerText = result.result;
 
-                // Move to the next question
+                if (!response.ok) throw new Error("Failed to submit answer");
+
+                const result = await response.json();
+                responseElement.innerText = result.result || "No response received.";
+
                 currentQuestionIndex++;
-                setTimeout(displayQuestion, 1000); // Show the next question after 1 second
+                setTimeout(displayQuestion, 1000); // Move to the next question
             } catch (error) {
                 console.error("Error submitting answer:", error);
-                document.getElementById("response").innerText = "Error submitting answer.";
+                responseElement.innerText = "Error submitting your answer. Please try again.";
             }
+        }
+
+        /**
+         * Hide the answer buttons when quiz completes
+         */
+        function hideButtons() {
+            const buttons = document.querySelectorAll("button");
+            buttons.forEach(button => button.style.display = "none");
         }
 
         // Load all questions when the page loads
@@ -72,6 +155,23 @@
     </script>
 </body>
 </html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
